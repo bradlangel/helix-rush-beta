@@ -1,11 +1,11 @@
 {
-  "build_id": "c1f93d5bc0c5-run31727135189.1",
+  "build_id": "8ba3e6ce440a-run31728032750.1",
   "channel": "unlisted-beta",
   "game": "helix-rush",
   "godot_version": "4.7.1",
   "schema": 1,
-  "source_commit": "c1f93d5bc0c5ac5b399fd2711a0f89f6d74c9473",
+  "source_commit": "8ba3e6ce440a93f975647d42170a0c8788d9670f",
   "source_state": "clean",
   "workflow_run_attempt": 1,
-  "workflow_run_id": "31727135189"
+  "workflow_run_id": "31728032750"
 }
