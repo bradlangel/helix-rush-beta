@@ -4,8 +4,8 @@
 // Incrementing CACHE_VERSION will kick off the install event and force
 // previously cached resources to be updated from the network.
 /** @type {string} */
-const CACHE_VERSION = '1786573718|3073299';
-const HELIX_RUSH_BUILD_ID = '5162646a8f51-run31647029198.1';
+const CACHE_VERSION = '1786587150|3000356';
+const HELIX_RUSH_BUILD_ID = 'f4dcbdef8c9d-run31660061010.1';
 /** @type {string} */
 const CACHE_PREFIX = 'Helix Rush-sw-cache-';
 const CACHE_NAME = CACHE_PREFIX + CACHE_VERSION + '-' + HELIX_RUSH_BUILD_ID;
