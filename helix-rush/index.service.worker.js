@@ -4,8 +4,8 @@
 // Incrementing CACHE_VERSION will kick off the install event and force
 // previously cached resources to be updated from the network.
 /** @type {string} */
-const CACHE_VERSION = '1786596472|2187614';
-const HELIX_RUSH_BUILD_ID = '1509b5922333-run31668107792.1';
+const CACHE_VERSION = '1786637300|3158849';
+const HELIX_RUSH_BUILD_ID = '873a898f6170-run31719029438.1';
 /** @type {string} */
 const CACHE_PREFIX = 'Helix Rush-sw-cache-';
 const CACHE_NAME = CACHE_PREFIX + CACHE_VERSION + '-' + HELIX_RUSH_BUILD_ID;
@@ -51,12 +51,11 @@ self.addEventListener('activate', (event) => {
 			return Promise.resolve();
 		}
 		return self.clients.matchAll({type: 'window', includeUncontrolled: true}).then(
-			(all) => all.forEach((client) => {
-				client.postMessage({type: 'HELIX_RUSH_RELEASE_UPDATED'});
-				// Start navigation while this event owns the worker, but do not await
-				// it: navigation cannot finish until activation itself has finished.
-				client.navigate(client.url).catch(() => null);
-			})
+			// The controlled page owns the one reload. Starting client.navigate()
+			// here races its message/controllerchange handlers on slow browsers.
+			(all) => all.forEach((client) =>
+				client.postMessage({type: 'HELIX_RUSH_RELEASE_UPDATED'})
+			)
 		);
 	}));
 });

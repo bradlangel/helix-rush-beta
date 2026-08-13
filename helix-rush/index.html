@@ -94,7 +94,7 @@ body {
 <meta name="robots" content="noindex,nofollow,noarchive">
 <meta name="description" content="Helix Rush unlisted playtest beta">
 <link rel="icon" type="image/png" sizes="144x144" href="index.144x144.png">
-	<meta name="helix-rush-build" content="1509b5922333-run31668107792.1">
+	<meta name="helix-rush-build" content="873a898f6170-run31719029438.1">
 <!-- helix-rush-ga4:start -->
 <script>
 (function () {
@@ -132,6 +132,16 @@ body {
   navigator.serviceWorker.addEventListener('message', function (event) {
     if (event.data && event.data.type === 'HELIX_RUSH_RELEASE_UPDATED') refresh();
   });
+  navigator.serviceWorker.getRegistration().then(function (registration) {
+    if (!registration) return;
+    registration.addEventListener('updatefound', function () {
+      var installing = registration.installing;
+      if (!installing) return;
+      installing.addEventListener('statechange', function () {
+        if (installing.state === 'activated') refresh();
+      });
+    });
+  }).catch(function () {});
 })();
 </script>
 <!-- helix-rush-release-update:end -->
@@ -153,7 +163,7 @@ body {
 
 		<script src="index.js"></script>
 		<script>
-const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":false,"executable":"index","experimentalVK":true,"fileSizes":{"index.pck":635084,"index.wasm":39513091},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4,"serviceWorker":"index.service.worker.js"};
+const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":false,"executable":"index","experimentalVK":true,"fileSizes":{"index.pck":643756,"index.wasm":39513091},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4,"serviceWorker":"index.service.worker.js"};
 const GODOT_THREADS_ENABLED = false;
 const engine = new Engine(GODOT_CONFIG);
 
