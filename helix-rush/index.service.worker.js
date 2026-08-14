@@ -4,8 +4,8 @@
 // Incrementing CACHE_VERSION will kick off the install event and force
 // previously cached resources to be updated from the network.
 /** @type {string} */
-const CACHE_VERSION = '1786715213|3062825';
-const HELIX_RUSH_BUILD_ID = 'f052efe96cef-run31806213236.1';
+const CACHE_VERSION = '1786725964|3041905';
+const HELIX_RUSH_BUILD_ID = '5bb59a8dfebc-run31820766890.1';
 /** @type {string} */
 const CACHE_PREFIX = 'Helix Rush-sw-cache-';
 const CACHE_NAME = CACHE_PREFIX + CACHE_VERSION + '-' + HELIX_RUSH_BUILD_ID;
@@ -31,6 +31,59 @@ self.addEventListener('install', (event) => {
 	);
 });
 
+const HELIX_RUSH_RELEASE_READY_CLIENTS = new Set();
+const HELIX_RUSH_RELEASE_RETRY_DELAYS_MS = [0, 750, 1500, 3000];
+
+self.addEventListener('message', (event) => {
+	const data = event.data || {};
+	if (
+		data.type === 'HELIX_RUSH_RELEASE_READY'
+		&& data.build_id === HELIX_RUSH_BUILD_ID
+		&& event.source
+		&& event.source.id
+	) {
+		HELIX_RUSH_RELEASE_READY_CLIENTS.add(event.source.id);
+	}
+});
+
+function navigateHelixRushReleaseClients() {
+	return self.clients.matchAll({type: 'window', includeUncontrolled: true}).then(
+		(all) => all.forEach((client) => {
+			if (HELIX_RUSH_RELEASE_READY_CLIENTS.has(client.id)) return null;
+			// Initiate the authoritative navigation without making activation wait
+			// for a navigation that may itself wait for activation to finish.
+			client.navigate(client.url).catch(() => {
+				client.postMessage({
+					type: 'HELIX_RUSH_RELEASE_UPDATED',
+					build_id: HELIX_RUSH_BUILD_ID,
+				});
+			});
+		})
+	);
+}
+
+function notifyHelixRushReleaseClients() {
+	return self.clients.matchAll({type: 'window', includeUncontrolled: true}).then(
+		(all) => all.forEach((client) => {
+			if (HELIX_RUSH_RELEASE_READY_CLIENTS.has(client.id)) return;
+			client.postMessage({
+				type: 'HELIX_RUSH_RELEASE_UPDATED',
+				build_id: HELIX_RUSH_BUILD_ID,
+			});
+		})
+	);
+}
+
+function retryHelixRushReleaseNotification(attempt = 0) {
+	if (attempt >= HELIX_RUSH_RELEASE_RETRY_DELAYS_MS.length) {
+		return Promise.resolve();
+	}
+	return new Promise((resolve) => {
+		setTimeout(resolve, HELIX_RUSH_RELEASE_RETRY_DELAYS_MS[attempt]);
+	}).then(() => notifyHelixRushReleaseClients())
+		.then(() => retryHelixRushReleaseNotification(attempt + 1));
+}
+
 self.addEventListener('activate', (event) => {
 	let replacingRelease = false;
 	event.waitUntil(caches.keys().then(
@@ -50,20 +103,10 @@ self.addEventListener('activate', (event) => {
 		if (!replacingRelease) {
 			return Promise.resolve();
 		}
-		return self.clients.matchAll({type: 'window', includeUncontrolled: true}).then(
-			// The activated worker owns one authoritative navigation. This rescues
-			// slow phones whose older page already began a stale-cache reload.
-			(all) => Promise.all(all.map((client) =>
-				client.navigate(client.url).then((navigatedClient) => {
-					if (navigatedClient) return navigatedClient;
-					client.postMessage({type: 'HELIX_RUSH_RELEASE_UPDATED'});
-					return null;
-				}).catch(() => {
-					client.postMessage({type: 'HELIX_RUSH_RELEASE_UPDATED'});
-					return null;
-				})
-			))
-		);
+		// Navigate once, then retry a build-aware refresh notification for slow
+		// or already-reloading tabs. A page that acknowledges this build is done.
+		return navigateHelixRushReleaseClients()
+			.then(() => retryHelixRushReleaseNotification());
 	}));
 });
 

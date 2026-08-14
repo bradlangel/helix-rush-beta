@@ -94,7 +94,7 @@ body {
 <meta name="robots" content="noindex,nofollow,noarchive">
 <meta name="description" content="Helix Rush unlisted playtest beta">
 <link rel="icon" type="image/png" sizes="144x144" href="index.144x144.png">
-	<meta name="helix-rush-build" content="f052efe96cef-run31806213236.1">
+	<meta name="helix-rush-build" content="5bb59a8dfebc-run31820766890.1">
 <!-- helix-rush-ga4:start -->
 <script>
 (function () {
@@ -122,6 +122,8 @@ body {
 <script>
 (function () {
   if (!('serviceWorker' in navigator) || !navigator.serviceWorker.controller) return;
+  var currentBuildTag = document.querySelector('meta[name=helix-rush-build]');
+  var currentBuild = currentBuildTag ? String(currentBuildTag.content || '') : '';
   var refreshing = false;
   var refresh = function () {
     if (refreshing) return;
@@ -131,10 +133,21 @@ body {
   // The activated worker owns the navigation. A message is only the fallback
   // for browsers that reject WindowClient.navigate().
   navigator.serviceWorker.addEventListener('message', function (event) {
-    if (event.data && event.data.type === 'HELIX_RUSH_RELEASE_UPDATED') refresh();
+    if (
+      event.data
+      && event.data.type === 'HELIX_RUSH_RELEASE_UPDATED'
+      && (!event.data.build_id || event.data.build_id !== currentBuild)
+    ) refresh();
   });
-  var currentBuildTag = document.querySelector('meta[name=helix-rush-build]');
-  var currentBuild = currentBuildTag ? String(currentBuildTag.content || '') : '';
+  var announceCurrentRelease = function () {
+    var message = {type: 'HELIX_RUSH_RELEASE_READY', build_id: currentBuild};
+    navigator.serviceWorker.controller.postMessage(message);
+    return navigator.serviceWorker.ready.then(function (registration) {
+      if (registration.active && registration.active !== navigator.serviceWorker.controller) {
+        registration.active.postMessage(message);
+      }
+    }).catch(function () {});
+  };
   var requestUpdate = function () {
     return navigator.serviceWorker.getRegistration().then(function (registration) {
       return registration ? registration.update() : null;
@@ -150,8 +163,10 @@ body {
         return null;
       }).catch(function () {});
   };
+  window.__helixRushAnnounceRelease = announceCurrentRelease;
   window.__helixRushCheckRelease = checkRelease;
   window.__helixRushRequestUpdate = requestUpdate;
+  announceCurrentRelease();
   requestUpdate();
   window.setTimeout(checkRelease, 2000);
   window.setInterval(checkRelease, 30000);
@@ -176,7 +191,7 @@ body {
 
 		<script src="index.js"></script>
 		<script>
-const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":false,"executable":"index","experimentalVK":true,"fileSizes":{"index.pck":669548,"index.wasm":39513091},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4,"serviceWorker":"index.service.worker.js"};
+const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":false,"executable":"index","experimentalVK":true,"fileSizes":{"index.pck":669932,"index.wasm":39513091},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4,"serviceWorker":"index.service.worker.js"};
 const GODOT_THREADS_ENABLED = false;
 const engine = new Engine(GODOT_CONFIG);
 
