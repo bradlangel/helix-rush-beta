@@ -4,8 +4,8 @@
 // Incrementing CACHE_VERSION will kick off the install event and force
 // previously cached resources to be updated from the network.
 /** @type {string} */
-const CACHE_VERSION = '1786729509|2420925';
-const HELIX_RUSH_BUILD_ID = 'e36f9fd80ad3-run31825332304.1';
+const CACHE_VERSION = '1786745482|2989186';
+const HELIX_RUSH_BUILD_ID = '896f0b31d1b2-run31845509912.1';
 /** @type {string} */
 const CACHE_PREFIX = 'Helix Rush-sw-cache-';
 const CACHE_NAME = CACHE_PREFIX + CACHE_VERSION + '-' + HELIX_RUSH_BUILD_ID;
@@ -26,7 +26,9 @@ self.addEventListener('install', (event) => {
 	// Activate a newly stamped release without waiting for old game tabs to close.
 	event.waitUntil(
 		caches.open(CACHE_NAME)
-			.then((cache) => cache.addAll(CACHED_FILES))
+			.then((cache) => cache.addAll(
+			CACHED_FILES.map((name) => new Request(name, {cache: 'reload'}))
+		))
 			.then(() => self.skipWaiting())
 	);
 });
@@ -146,7 +148,7 @@ async function fetchAndCache(event, cache, isCacheable) {
 	let response = await event.preloadResponse;
 	if (response == null) {
 		// Or, go over network.
-		response = await self.fetch(event.request);
+		response = await self.fetch(event.request, {cache: 'no-store'});
 	}
 
 	if (ENSURE_CROSSORIGIN_ISOLATION_HEADERS) {
