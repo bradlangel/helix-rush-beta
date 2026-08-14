@@ -94,7 +94,7 @@ body {
 <meta name="robots" content="noindex,nofollow,noarchive">
 <meta name="description" content="Helix Rush unlisted playtest beta">
 <link rel="icon" type="image/png" sizes="144x144" href="index.144x144.png">
-	<meta name="helix-rush-build" content="052e150ea1e3-run31768375644.1">
+	<meta name="helix-rush-build" content="f052efe96cef-run31806213236.1">
 <!-- helix-rush-ga4:start -->
 <script>
 (function () {
@@ -128,31 +128,33 @@ body {
     refreshing = true;
     window.location.reload();
   };
-  navigator.serviceWorker.addEventListener('controllerchange', refresh);
+  // The activated worker owns the navigation. A message is only the fallback
+  // for browsers that reject WindowClient.navigate().
   navigator.serviceWorker.addEventListener('message', function (event) {
     if (event.data && event.data.type === 'HELIX_RUSH_RELEASE_UPDATED') refresh();
   });
-  navigator.serviceWorker.getRegistration().then(function (registration) {
-    if (!registration) return;
-    registration.addEventListener('updatefound', function () {
-      var installing = registration.installing;
-      if (!installing) return;
-      installing.addEventListener('statechange', function () {
-        if (installing.state === 'activated') refresh();
-      });
-    });
-  }).catch(function () {});
   var currentBuildTag = document.querySelector('meta[name=helix-rush-build]');
   var currentBuild = currentBuildTag ? String(currentBuildTag.content || '') : '';
+  var requestUpdate = function () {
+    return navigator.serviceWorker.getRegistration().then(function (registration) {
+      return registration ? registration.update() : null;
+    }).catch(function () {});
+  };
   var checkRelease = function () {
-    fetch('release.json?helix-rush-build-check=' + Date.now(), {cache: 'no-store'})
+    return fetch('release.json?helix-rush-build-check=' + Date.now(), {cache: 'no-store'})
       .then(function (response) { return response.ok ? response.json() : null; })
       .then(function (release) {
-        if (release && release.build_id && release.build_id !== currentBuild) refresh();
+        if (release && release.build_id && release.build_id !== currentBuild) {
+          return requestUpdate();
+        }
+        return null;
       }).catch(function () {});
   };
   window.__helixRushCheckRelease = checkRelease;
-  window.setInterval(checkRelease, 2000);
+  window.__helixRushRequestUpdate = requestUpdate;
+  requestUpdate();
+  window.setTimeout(checkRelease, 2000);
+  window.setInterval(checkRelease, 30000);
 })();
 </script>
 <!-- helix-rush-release-update:end -->

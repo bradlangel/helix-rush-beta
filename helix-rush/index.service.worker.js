@@ -4,8 +4,8 @@
 // Incrementing CACHE_VERSION will kick off the install event and force
 // previously cached resources to be updated from the network.
 /** @type {string} */
-const CACHE_VERSION = '1786679943|3036789';
-const HELIX_RUSH_BUILD_ID = '052e150ea1e3-run31768375644.1';
+const CACHE_VERSION = '1786715213|3062825';
+const HELIX_RUSH_BUILD_ID = 'f052efe96cef-run31806213236.1';
 /** @type {string} */
 const CACHE_PREFIX = 'Helix Rush-sw-cache-';
 const CACHE_NAME = CACHE_PREFIX + CACHE_VERSION + '-' + HELIX_RUSH_BUILD_ID;
@@ -35,8 +35,8 @@ self.addEventListener('activate', (event) => {
 	let replacingRelease = false;
 	event.waitUntil(caches.keys().then(
 		function (keys) {
-			// Remove old caches before claiming tabs so their controllerchange
-			// handler reloads against only the newly stamped release.
+			// Remove old caches before claiming tabs and navigating them to the
+			// newly stamped release.
 			replacingRelease = keys.some((key) => key.startsWith(CACHE_PREFIX) && key !== CACHE_NAME);
 			return Promise.all(keys.filter((key) => key.startsWith(CACHE_PREFIX) && key !== CACHE_NAME).map((key) => caches.delete(key)));
 		}
@@ -51,11 +51,18 @@ self.addEventListener('activate', (event) => {
 			return Promise.resolve();
 		}
 		return self.clients.matchAll({type: 'window', includeUncontrolled: true}).then(
-			// The controlled page owns the one reload. Starting client.navigate()
-			// here races its message/controllerchange handlers on slow browsers.
-			(all) => all.forEach((client) =>
-				client.postMessage({type: 'HELIX_RUSH_RELEASE_UPDATED'})
-			)
+			// The activated worker owns one authoritative navigation. This rescues
+			// slow phones whose older page already began a stale-cache reload.
+			(all) => Promise.all(all.map((client) =>
+				client.navigate(client.url).then((navigatedClient) => {
+					if (navigatedClient) return navigatedClient;
+					client.postMessage({type: 'HELIX_RUSH_RELEASE_UPDATED'});
+					return null;
+				}).catch(() => {
+					client.postMessage({type: 'HELIX_RUSH_RELEASE_UPDATED'});
+					return null;
+				})
+			))
 		);
 	}));
 });
