@@ -94,10 +94,12 @@ body {
 <meta name="robots" content="noindex,nofollow,noarchive">
 <meta name="description" content="Helix Rush unlisted playtest beta">
 <link rel="icon" type="image/png" sizes="144x144" href="index.144x144.png">
-	<meta name="helix-rush-build" content="516a91e7caa1-run31899009511.1">
+	<meta name="helix-rush-build" content="c77ca5dc1bbe-run31907225404.1">
 <!-- helix-rush-ga4:start -->
 <script>
 (function () {
+  var previewValues = new URLSearchParams(window.location.search).getAll('daily-preview');
+  if (previewValues.length === 1 && previewValues[0] === '1') return;
   var dnt = String(navigator.doNotTrack || window.doNotTrack || '').toLowerCase();
   if (dnt === '1' || dnt === 'yes' || navigator.globalPrivacyControl === true) return;
   window.dataLayer = window.dataLayer || [];
@@ -191,7 +193,7 @@ body {
 
 		<script src="index.js"></script>
 		<script>
-const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":false,"executable":"index","experimentalVK":true,"fileSizes":{"index.pck":715464,"index.wasm":39513091},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4,"serviceWorker":"index.service.worker.js"};
+const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":false,"executable":"index","experimentalVK":true,"fileSizes":{"index.pck":729768,"index.wasm":39513091},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4,"serviceWorker":"index.service.worker.js"};
 const GODOT_THREADS_ENABLED = false;
 const engine = new Engine(GODOT_CONFIG);
 
