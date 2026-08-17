@@ -1,247 +1,78 @@
-// This service worker is required to expose an exported Godot project as a
-// Progressive Web App. It provides an offline fallback page telling the user
-// that they need an Internet connection to run the project if desired.
-// Incrementing CACHE_VERSION will kick off the install event and force
-// previously cached resources to be updated from the network.
-/** @type {string} */
-const CACHE_VERSION = '1786919497|3067988';
-const HELIX_RUSH_BUILD_ID = '9c3e34219ed2-run31976483150.1';
-/** @type {string} */
-const CACHE_PREFIX = 'Helix Rush-sw-cache-';
-const CACHE_NAME = CACHE_PREFIX + CACHE_VERSION + '-' + HELIX_RUSH_BUILD_ID;
-/** @type {string} */
-const OFFLINE_URL = 'index.offline.html';
-const NAVIGATION_CACHE_URL = 'index.html';
-/** @type {boolean} */
-const ENSURE_CROSSORIGIN_ISOLATION_HEADERS = false;
-// Files that will be cached on load.
-/** @type {string[]} */
-const CACHED_FILES = ["release.json","GODOT_COPYRIGHT.txt","index.html","index.js","index.offline.html","index.audio.worklet.js","index.audio.position.worklet.js"];
-// Files that we might not want the user to preload, and will only be cached on first load.
-/** @type {string[]} */
-const CACHEABLE_FILES = ["index.wasm","index.pck"];
-const FULL_CACHE = CACHED_FILES.concat(CACHEABLE_FILES);
+'use strict';
 
-self.addEventListener('install', (event) => {
-	// Activate a newly stamped release without waiting for old game tabs to close.
-	event.waitUntil(
-		caches.open(CACHE_NAME)
-			.then((cache) => cache.addAll(
-			CACHED_FILES.map((name) => new Request(name, {cache: 'reload'}))
-		))
-			.then(() => self.skipWaiting())
-	);
-});
+const LEGACY_CACHE_PREFIX = 'Helix Rush-sw-cache-';
+const CANONICAL_URL = 'https://bradlangel.github.io/upcoil/';
+const REDIRECT_HTML = `<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta name="robots" content="noindex,nofollow,noarchive">
+	<title>Helix Rush is now Upcoil</title>
+</head>
+<body>
+	<p>Helix Rush is now <a href="${CANONICAL_URL}">Upcoil</a>.</p>
+	<script>
+		const target = new URL('${CANONICAL_URL}');
+		target.search = window.location.search;
+		target.hash = window.location.hash;
+		window.location.replace(target.href);
+	<\/script>
+</body>
+</html>`;
 
-const HELIX_RUSH_RELEASE_READY_CLIENTS = new Set();
-const HELIX_RUSH_RELEASE_RETRY_DELAYS_MS = [0, 750, 1500, 3000];
-
-self.addEventListener('message', (event) => {
-	const data = event.data || {};
-	if (
-		data.type === 'HELIX_RUSH_RELEASE_READY'
-		&& data.build_id === HELIX_RUSH_BUILD_ID
-		&& event.source
-		&& event.source.id
-	) {
-		HELIX_RUSH_RELEASE_READY_CLIENTS.add(event.source.id);
-	}
-});
-
-function navigateHelixRushReleaseClients() {
-	return self.clients.matchAll({type: 'window', includeUncontrolled: true}).then(
-		(all) => all.forEach((client) => {
-			if (HELIX_RUSH_RELEASE_READY_CLIENTS.has(client.id)) return null;
-			// Initiate the authoritative navigation without making activation wait
-			// for a navigation that may itself wait for activation to finish.
-			client.navigate(client.url).catch(() => {
-				client.postMessage({
-					type: 'HELIX_RUSH_RELEASE_UPDATED',
-					build_id: HELIX_RUSH_BUILD_ID,
-				});
-			});
-		})
-	);
+async function deleteLegacyCaches() {
+	const keys = await caches.keys();
+	await Promise.all(keys.filter(function (key) {
+		return key.startsWith(LEGACY_CACHE_PREFIX);
+	}).map(function (key) {
+		return caches.delete(key);
+	}));
 }
 
-function notifyHelixRushReleaseClients() {
-	return self.clients.matchAll({type: 'window', includeUncontrolled: true}).then(
-		(all) => all.forEach((client) => {
-			if (HELIX_RUSH_RELEASE_READY_CLIENTS.has(client.id)) return;
-			client.postMessage({
-				type: 'HELIX_RUSH_RELEASE_UPDATED',
-				build_id: HELIX_RUSH_BUILD_ID,
-			});
-		})
-	);
+function legacyScopeClients() {
+	const scope = new URL(self.registration.scope);
+	return self.clients.matchAll({
+		type: 'window',
+		includeUncontrolled: true,
+	}).then(function (clients) {
+		return clients.filter(function (client) {
+			const url = new URL(client.url);
+			return url.origin === scope.origin && url.pathname.startsWith(scope.pathname);
+		});
+	});
 }
 
-function retryHelixRushReleaseNotification(attempt = 0) {
-	if (attempt >= HELIX_RUSH_RELEASE_RETRY_DELAYS_MS.length) {
-		return Promise.resolve();
-	}
-	return new Promise((resolve) => {
-		setTimeout(resolve, HELIX_RUSH_RELEASE_RETRY_DELAYS_MS[attempt]);
-	}).then(() => notifyHelixRushReleaseClients())
-		.then(() => retryHelixRushReleaseNotification(attempt + 1));
-}
-
-self.addEventListener('activate', (event) => {
-	let replacingRelease = false;
-	event.waitUntil(caches.keys().then(
-		function (keys) {
-			// Remove old caches before claiming tabs and navigating them to the
-			// newly stamped release.
-			replacingRelease = keys.some((key) => key.startsWith(CACHE_PREFIX) && key !== CACHE_NAME);
-			return Promise.all(keys.filter((key) => key.startsWith(CACHE_PREFIX) && key !== CACHE_NAME).map((key) => caches.delete(key)));
-		}
-	).then(function () {
-		// Enable navigation preload if available.
-		return ('navigationPreload' in self.registration) ? self.registration.navigationPreload.enable() : Promise.resolve();
-	}).then(function () {
-		// Refresh open game tabs after replacing an older cached release.
-		return self.clients.claim();
-	}).then(function () {
-		if (!replacingRelease) {
-			return Promise.resolve();
-		}
-		// Navigate once, then retry a build-aware refresh notification for slow
-		// or already-reloading tabs. A page that acknowledges this build is done.
-		return navigateHelixRushReleaseClients()
-			.then(() => retryHelixRushReleaseNotification());
+self.addEventListener('install', function (event) {
+	// Clear a cached game shell before this replacement worker takes control.
+	event.waitUntil(deleteLegacyCaches().then(function () {
+		return self.skipWaiting();
 	}));
 });
 
-/**
- * Ensures that the response has the correct COEP/COOP headers
- * @param {Response} response
- * @returns {Response}
- */
-function ensureCrossOriginIsolationHeaders(response) {
-	if (response.headers.get('Cross-Origin-Embedder-Policy') === 'require-corp'
-		&& response.headers.get('Cross-Origin-Opener-Policy') === 'same-origin') {
-		return response;
-	}
-
-	const crossOriginIsolatedHeaders = new Headers(response.headers);
-	crossOriginIsolatedHeaders.set('Cross-Origin-Embedder-Policy', 'require-corp');
-	crossOriginIsolatedHeaders.set('Cross-Origin-Opener-Policy', 'same-origin');
-	const newResponse = new Response(response.body, {
-		status: response.status,
-		statusText: response.statusText,
-		headers: crossOriginIsolatedHeaders,
-	});
-
-	return newResponse;
-}
-
-/**
- * Calls fetch and cache the result if it is cacheable
- * @param {FetchEvent} event
- * @param {Cache} cache
- * @param {boolean} isCacheable
- * @returns {Response}
- */
-async function fetchAndCache(event, cache, isCacheable) {
-	// Use the preloaded response, if it's there
-	/** @type { Response } */
-	let response = await event.preloadResponse;
-	if (response == null) {
-		// Or, go over network.
-		response = await self.fetch(event.request, {cache: 'no-store'});
-	}
-
-	if (ENSURE_CROSSORIGIN_ISOLATION_HEADERS) {
-		response = ensureCrossOriginIsolationHeaders(response);
-	}
-
-	if (isCacheable) {
-		// And update the cache
-		cache.put(event.request, response.clone());
-	}
-
-	return response;
-}
-
-self.addEventListener(
-	'fetch',
-	/**
-	 * Triggered on fetch
-	 * @param {FetchEvent} event
-	 */
-	(event) => {
-		const isNavigate = event.request.mode === 'navigate';
-		const url = event.request.url || '';
-		const referrer = event.request.referrer || '';
-		const base = referrer.slice(0, referrer.lastIndexOf('/') + 1);
-		const local = url.startsWith(base) ? url.replace(base, '') : '';
-		const isCacheable = FULL_CACHE.some((v) => v === local) || (base === referrer && base.endsWith(CACHED_FILES[0]));
-		if (isNavigate || isCacheable) {
-			event.respondWith((async () => {
-				// Try to use cache first
-				const cache = await caches.open(CACHE_NAME);
-				if (isNavigate) {
-					// Check if we have full cache during HTML page request.
-					/** @type {Response[]} */
-					const fullCache = await Promise.all(FULL_CACHE.map((name) => cache.match(name)));
-					const missing = fullCache.some((v) => v === undefined);
-					if (missing) {
-						try {
-							// Try network if some cached file is missing (so we can display offline page in case).
-							const response = await fetchAndCache(event, cache, isCacheable);
-							return response;
-						} catch (e) {
-							// And return the hopefully always cached offline page in case of network failure.
-							console.error('Network error: ', e); // eslint-disable-line no-console
-							return caches.match(OFFLINE_URL);
-						}
-					}
-				}
-				const requestURL = new URL(event.request.url);
-				const scopeURL = new URL(self.registration.scope);
-				const isScopeRootNavigation = isNavigate
-					&& requestURL.origin === scopeURL.origin
-					&& requestURL.pathname === scopeURL.pathname;
-				let cached = await cache.match(isScopeRootNavigation ? NAVIGATION_CACHE_URL : event.request);
-				if (cached != null) {
-					if (ENSURE_CROSSORIGIN_ISOLATION_HEADERS) {
-						cached = ensureCrossOriginIsolationHeaders(cached);
-					}
-					return cached;
-				}
-				// Try network if don't have it in cache.
-				const response = await fetchAndCache(event, cache, isCacheable);
-				return response;
-			})());
-		} else if (ENSURE_CROSSORIGIN_ISOLATION_HEADERS) {
-			event.respondWith((async () => {
-				let response = await fetch(event.request);
-				response = ensureCrossOriginIsolationHeaders(response);
-				return response;
-			})());
-		}
-	}
-);
-
-self.addEventListener('message', (event) => {
-	// No cross origin
-	if (event.origin !== self.origin) {
-		return;
-	}
-	const id = event.source.id || '';
-	const msg = event.data || '';
-	// Ensure it's one of our clients.
-	self.clients.get(id).then(function (client) {
-		if (!client) {
-			return; // Not a valid client.
-		}
-		if (msg === 'claim') {
-			self.skipWaiting().then(() => self.clients.claim());
-		} else if (msg === 'clear') {
-			caches.delete(CACHE_NAME);
-		} else if (msg === 'update') {
-			self.skipWaiting().then(() => self.clients.claim()).then(() => self.clients.matchAll()).then((all) => all.forEach((c) => c.navigate(c.url)));
-		}
-	});
+self.addEventListener('activate', function (event) {
+	event.waitUntil((async function () {
+		await deleteLegacyCaches();
+		await self.clients.claim();
+		const clients = await legacyScopeClients();
+		await self.registration.unregister();
+		await Promise.all(clients.map(function (client) {
+			const source = new URL(client.url);
+			const target = new URL(CANONICAL_URL);
+			target.search = source.search;
+			target.hash = source.hash;
+			return client.navigate(target.href);
+		}));
+	}()));
 });
 
+self.addEventListener('fetch', function (event) {
+	if (event.request.mode !== 'navigate') return;
+	event.respondWith(Promise.resolve(new Response(REDIRECT_HTML, {
+		status: 200,
+		headers: {
+			'Cache-Control': 'no-store',
+			'Content-Type': 'text/html; charset=utf-8',
+		},
+	})));
+});

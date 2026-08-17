@@ -1,302 +1,62 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-	<head>
-		<meta charset="utf-8">
-		<meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0">
-		<title>Helix Rush</title>
-		<style>
-html, body, #canvas {
-	margin: 0;
-	padding: 0;
-	border: 0;
-}
-
-body {
-	color: white;
-	background-color: black;
-	overflow: hidden;
-	touch-action: none;
-}
-
-#canvas {
-	display: block;
-}
-
-#canvas:focus {
-	outline: none;
-}
-
-#status, #status-splash, #status-progress {
-	position: absolute;
-	left: 0;
-	right: 0;
-}
-
-#status, #status-splash {
-	top: 0;
-	bottom: 0;
-}
-
-#status {
-	background-color: #242424;
-	display: flex;
-	flex-direction: column;
-	justify-content: center;
-	align-items: center;
-	visibility: hidden;
-}
-
-#status-splash {
-	max-height: 100%;
-	max-width: 100%;
-	margin: auto;
-}
-
-#status-splash.show-image--false {
-	display: none;
-}
-
-#status-splash.fullsize--true {
-	height: 100%;
-	width: 100%;
-	object-fit: contain;
-}
-
-#status-splash.use-filter--false {
-	image-rendering: pixelated;
-}
-
-#status-progress, #status-notice {
-	display: none;
-}
-
-#status-progress {
-	bottom: 10%;
-	width: 50%;
-	margin: 0 auto;
-}
-
-#status-notice {
-	background-color: #5b3943;
-	border-radius: 0.5rem;
-	border: 1px solid #9b3943;
-	color: #e0e0e0;
-	font-family: 'Noto Sans', 'Droid Sans', Arial, sans-serif;
-	line-height: 1.3;
-	margin: 0 2rem;
-	overflow: hidden;
-	padding: 1rem;
-	text-align: center;
-	z-index: 1;
-}
-		</style>
-		<link rel="manifest" href="index.manifest.json">
-<meta name="robots" content="noindex,nofollow,noarchive">
-<meta name="description" content="Helix Rush unlisted playtest beta">
-<link rel="icon" type="image/png" sizes="144x144" href="index.144x144.png">
-	<meta name="helix-rush-build" content="9c3e34219ed2-run31976483150.1">
-<!-- helix-rush-ga4:start -->
-<script>
-(function () {
-  var previewValues = new URLSearchParams(window.location.search).getAll('daily-preview');
-  if (previewValues.length === 1 && previewValues[0] === '1') return;
-  var dnt = String(navigator.doNotTrack || window.doNotTrack || '').toLowerCase();
-  if (dnt === '1' || dnt === 'yes' || navigator.globalPrivacyControl === true) return;
-  window.dataLayer = window.dataLayer || [];
-  window.gtag = function () { window.dataLayer.push(arguments); };
-  window.gtag('js', new Date());
-  window.gtag('set', {
-    allow_google_signals: false,
-    allow_ad_personalization_signals: false
-  });
-  window.gtag('config', 'G-XYRR5KK1J6', {
-    page_location: window.location.origin + window.location.pathname,
-    page_title: document.title
-  });
-  var tag = document.createElement('script');
-  tag.async = true;
-  tag.src = 'https://www.googletagmanager.com/gtag/js?id=G-XYRR5KK1J6';
-  document.head.appendChild(tag);
-})();
-</script>
-<!-- helix-rush-ga4:end -->
-<!-- helix-rush-release-update:start -->
-<script>
-(function () {
-  if (!('serviceWorker' in navigator) || !navigator.serviceWorker.controller) return;
-  var currentBuildTag = document.querySelector('meta[name=helix-rush-build]');
-  var currentBuild = currentBuildTag ? String(currentBuildTag.content || '') : '';
-  var refreshing = false;
-  var refresh = function () {
-    if (refreshing) return;
-    refreshing = true;
-    window.location.reload();
-  };
-  // The activated worker owns the navigation. A message is only the fallback
-  // for browsers that reject WindowClient.navigate().
-  navigator.serviceWorker.addEventListener('message', function (event) {
-    if (
-      event.data
-      && event.data.type === 'HELIX_RUSH_RELEASE_UPDATED'
-      && (!event.data.build_id || event.data.build_id !== currentBuild)
-    ) refresh();
-  });
-  var announceCurrentRelease = function () {
-    var message = {type: 'HELIX_RUSH_RELEASE_READY', build_id: currentBuild};
-    navigator.serviceWorker.controller.postMessage(message);
-    return navigator.serviceWorker.ready.then(function (registration) {
-      if (registration.active && registration.active !== navigator.serviceWorker.controller) {
-        registration.active.postMessage(message);
-      }
-    }).catch(function () {});
-  };
-  var requestUpdate = function () {
-    return navigator.serviceWorker.getRegistration().then(function (registration) {
-      return registration ? registration.update() : null;
-    }).catch(function () {});
-  };
-  var checkRelease = function () {
-    return fetch('release.json?helix-rush-build-check=' + Date.now(), {cache: 'no-store'})
-      .then(function (response) { return response.ok ? response.json() : null; })
-      .then(function (release) {
-        if (release && release.build_id && release.build_id !== currentBuild) {
-          return requestUpdate();
-        }
-        return null;
-      }).catch(function () {});
-  };
-  window.__helixRushAnnounceRelease = announceCurrentRelease;
-  window.__helixRushCheckRelease = checkRelease;
-  window.__helixRushRequestUpdate = requestUpdate;
-  announceCurrentRelease();
-  requestUpdate();
-  window.setTimeout(checkRelease, 2000);
-  window.setInterval(checkRelease, 30000);
-})();
-</script>
-<!-- helix-rush-release-update:end -->
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta name="robots" content="noindex,nofollow,noarchive">
+	<meta http-equiv="refresh" content="3; url=https://bradlangel.github.io/upcoil/">
+	<title>Helix Rush is now Upcoil</title>
 </head>
-	<body>
-		<canvas id="canvas">
-			Your browser does not support the canvas tag.
-		</canvas>
+<body>
+	<p>Helix Rush is now <a href="https://bradlangel.github.io/upcoil/">Upcoil</a>.</p>
+	<script>
+		(function () {
+			'use strict';
+			const canonicalUrl = 'https://bradlangel.github.io/upcoil/';
+			const legacyCachePrefix = 'Helix Rush-sw-cache-';
+			const legacyScope = new URL(
+				'/helix-rush-beta/helix-rush/',
+				window.location.origin
+			).href;
+			let redirected = false;
 
-		<noscript>
-			Your browser does not support JavaScript.
-		</noscript>
-
-		<div id="status">
-			<img id="status-splash" class="show-image--true fullsize--true use-filter--true" src="index.png" alt="">
-			<progress id="status-progress"></progress>
-			<div id="status-notice"></div>
-		</div>
-
-		<script src="index.js"></script>
-		<script>
-const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":false,"executable":"index","experimentalVK":true,"fileSizes":{"index.pck":849280,"index.wasm":39513091},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4,"serviceWorker":"index.service.worker.js"};
-const GODOT_THREADS_ENABLED = false;
-const engine = new Engine(GODOT_CONFIG);
-
-(function () {
-	const statusOverlay = document.getElementById('status');
-	const statusProgress = document.getElementById('status-progress');
-	const statusNotice = document.getElementById('status-notice');
-
-	let initializing = true;
-	let statusMode = '';
-
-	function setStatusMode(mode) {
-		if (statusMode === mode || !initializing) {
-			return;
-		}
-		if (mode === 'hidden') {
-			statusOverlay.remove();
-			initializing = false;
-			return;
-		}
-		statusOverlay.style.visibility = 'visible';
-		statusProgress.style.display = mode === 'progress' ? 'block' : 'none';
-		statusNotice.style.display = mode === 'notice' ? 'block' : 'none';
-		statusMode = mode;
-	}
-
-	function setStatusNotice(text) {
-		while (statusNotice.lastChild) {
-			statusNotice.removeChild(statusNotice.lastChild);
-		}
-		const lines = text.split('\n');
-		lines.forEach((line) => {
-			statusNotice.appendChild(document.createTextNode(line));
-			statusNotice.appendChild(document.createElement('br'));
-		});
-	}
-
-	function displayFailureNotice(err) {
-		console.error(err);
-		if (err instanceof Error) {
-			setStatusNotice(err.message);
-		} else if (typeof err === 'string') {
-			setStatusNotice(err);
-		} else {
-			setStatusNotice('An unknown error occurred.');
-		}
-		setStatusMode('notice');
-		initializing = false;
-	}
-
-	const missing = Engine.getMissingFeatures({
-		threads: GODOT_THREADS_ENABLED,
-	});
-
-	if (missing.length !== 0) {
-		if (GODOT_CONFIG['serviceWorker'] && GODOT_CONFIG['ensureCrossOriginIsolationHeaders'] && 'serviceWorker' in navigator) {
-			let serviceWorkerRegistrationPromise;
-			try {
-				serviceWorkerRegistrationPromise = navigator.serviceWorker.getRegistration();
-			} catch (err) {
-				serviceWorkerRegistrationPromise = Promise.reject(new Error('Service worker registration failed.'));
+			function openUpcoil() {
+				if (redirected) return;
+				redirected = true;
+				const target = new URL(canonicalUrl);
+				target.search = window.location.search;
+				target.hash = window.location.hash;
+				window.location.replace(target.href);
 			}
-			// There's a chance that installing the service worker would fix the issue
-			Promise.race([
-				serviceWorkerRegistrationPromise.then((registration) => {
-					if (registration != null) {
-						return Promise.reject(new Error('Service worker already exists.'));
-					}
-					return registration;
-				}).then(() => engine.installServiceWorker()),
-				// For some reason, `getRegistration()` can stall
-				new Promise((resolve) => {
-					setTimeout(() => resolve(), 2000);
-				}),
-			]).then(() => {
-				// Reload if there was no error.
-				window.location.reload();
-			}).catch((err) => {
-				console.error('Error while registering service worker:', err);
-			});
-		} else {
-			// Display the message as usual
-			const missingMsg = 'Error\nThe following features required to run Godot projects on the Web are missing:\n';
-			displayFailureNotice(missingMsg + missing.join('\n'));
-		}
-	} else {
-		setStatusMode('progress');
-		engine.startGame({
-			'onProgress': function (current, total) {
-				if (current > 0 && total > 0) {
-					statusProgress.value = current;
-					statusProgress.max = total;
-				} else {
-					statusProgress.removeAttribute('value');
-					statusProgress.removeAttribute('max');
-				}
-			},
-		}).then(() => {
-			setStatusMode('hidden');
-		}, displayFailureNotice);
-	}
-}());
-		</script>
-	</body>
-</html>
 
+			async function retireLegacyInstall() {
+				const work = [];
+				if ('caches' in window) {
+					work.push(caches.keys().then(function (keys) {
+						return Promise.all(keys.filter(function (key) {
+							return key.startsWith(legacyCachePrefix);
+						}).map(function (key) {
+							return caches.delete(key);
+						}));
+					}));
+				}
+				if ('serviceWorker' in navigator) {
+					work.push(navigator.serviceWorker.getRegistrations().then(function (registrations) {
+						return Promise.all(registrations.filter(function (registration) {
+							return registration.scope === legacyScope;
+						}).map(function (registration) {
+							return registration.unregister();
+						}));
+					}));
+				}
+				await Promise.all(work);
+			}
+
+			window.setTimeout(openUpcoil, 1500);
+			retireLegacyInstall().catch(function () {
+				// A cleanup failure must not strand a player on the retired host.
+			}).then(openUpcoil);
+		}());
+	</script>
+</body>
+</html>

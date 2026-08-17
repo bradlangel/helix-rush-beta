@@ -4,16 +4,59 @@
 	<meta charset="utf-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<meta name="robots" content="noindex,nofollow,noarchive">
-	<meta http-equiv="refresh" content="0; url=./helix-rush/">
-	<title>Opening Helix Rush…</title>
+	<meta http-equiv="refresh" content="3; url=https://bradlangel.github.io/upcoil/">
+	<title>Helix Rush is now Upcoil</title>
 </head>
 <body>
-	<p><a href="./helix-rush/">Open Helix Rush</a></p>
+	<p>Helix Rush is now <a href="https://bradlangel.github.io/upcoil/">Upcoil</a>.</p>
 	<script>
-		const target = new URL('./helix-rush/', window.location.href);
-		target.search = window.location.search;
-		target.hash = window.location.hash;
-		window.location.replace(target.href);
+		(function () {
+			'use strict';
+			const canonicalUrl = 'https://bradlangel.github.io/upcoil/';
+			const legacyCachePrefix = 'Helix Rush-sw-cache-';
+			const legacyScope = new URL(
+				'/helix-rush-beta/helix-rush/',
+				window.location.origin
+			).href;
+			let redirected = false;
+
+			function openUpcoil() {
+				if (redirected) return;
+				redirected = true;
+				const target = new URL(canonicalUrl);
+				target.search = window.location.search;
+				target.hash = window.location.hash;
+				window.location.replace(target.href);
+			}
+
+			async function retireLegacyInstall() {
+				const work = [];
+				if ('caches' in window) {
+					work.push(caches.keys().then(function (keys) {
+						return Promise.all(keys.filter(function (key) {
+							return key.startsWith(legacyCachePrefix);
+						}).map(function (key) {
+							return caches.delete(key);
+						}));
+					}));
+				}
+				if ('serviceWorker' in navigator) {
+					work.push(navigator.serviceWorker.getRegistrations().then(function (registrations) {
+						return Promise.all(registrations.filter(function (registration) {
+							return registration.scope === legacyScope;
+						}).map(function (registration) {
+							return registration.unregister();
+						}));
+					}));
+				}
+				await Promise.all(work);
+			}
+
+			window.setTimeout(openUpcoil, 1500);
+			retireLegacyInstall().catch(function () {
+				// A cleanup failure must not strand a player on the retired host.
+			}).then(openUpcoil);
+		}());
 	</script>
 </body>
 </html>
